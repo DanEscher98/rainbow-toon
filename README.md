@@ -8,6 +8,7 @@ Neovim plugin for [TOON (Token-Oriented Object Notation)](https://github.com/too
 - **Rainbow column highlighting** for tabular arrays (10-color cycling palette)
 - **Column alignment** with `:RainbowToonAlign`
 - **JSON to TOON conversion** with `:RainbowJson2Toon`
+- **Token counter** floating window showing GPT token count (via [gpt-tokenizer](https://www.npmjs.com/package/gpt-tokenizer))
 - **Filetype detection** for `.toon` files
 - **Editor settings** optimized for TOON (2-space indentation)
 
@@ -55,13 +56,33 @@ git clone https://github.com/DanEscher98/rainbow-toon \
 
 ## Parser Installation
 
-After installing the plugin, install the tree-sitter parser:
+After installing the plugin, install the tree-sitter parser using one of these methods:
+
+### Option 1: Via nvim-treesitter (Recommended)
 
 ```vim
 :TSInstall toon
 ```
 
-Or manually from [tree-sitter-toon](https://github.com/DanEscher98/tree-sitter-toon).
+### Option 2: Via npm
+
+If `:TSInstall toon` doesn't work, you can install the parser from npm and let nvim-treesitter compile it:
+
+```bash
+npm install -g @danyiel-colin/tree-sitter-toon
+```
+
+Then in Neovim, run:
+
+```vim
+:lua require('rainbow-toon').install_parser()
+```
+
+This will automatically configure and install the parser from the npm package.
+
+### Option 3: Manual Installation
+
+Build from source: [tree-sitter-toon](https://github.com/DanEscher98/tree-sitter-toon).
 
 ## Commands
 
@@ -71,6 +92,10 @@ Or manually from [tree-sitter-toon](https://github.com/DanEscher98/tree-sitter-t
 | `:RainbowToonDisable` | Disable rainbow column highlighting | toon |
 | `:RainbowToonToggle` | Toggle rainbow column highlighting | toon |
 | `:RainbowToonAlign` | Align tabular array columns | toon |
+| `:RainbowToonShrink` | Remove extra whitespace from columns | toon |
+| `:RainbowToonTokens` | Enable token counter display | toon |
+| `:RainbowToonTokensOff` | Disable token counter display | toon |
+| `:RainbowToonTokensToggle` | Toggle token counter display | toon |
 | `:RainbowJson2Toon` | Convert JSON to TOON (auto-saves) | json |
 | `:RainbowJson2Toon!` | Convert JSON to TOON (no auto-save) | json |
 
@@ -115,6 +140,16 @@ require('rainbow-toon').setup({
     'RainbowColumn8',
     'RainbowColumn9',
     'RainbowColumn10',
+  },
+
+  -- Token counter configuration
+  token_counter = {
+    enabled = false,        -- Auto-enable on TOON files
+    debounce_ms = 500,      -- Delay before recounting
+    winblend = 30,          -- Window transparency (0-100)
+    border = 'rounded',     -- Border style
+    highlight = 'Comment',  -- Text highlight group
+    format = ' %d tokens ', -- Display format
   },
 })
 ```
@@ -167,6 +202,32 @@ The converter automatically:
 - Chooses appropriate delimiters (comma, pipe, or tab) based on content
 - Opens the result in a vertical split
 - Saves to `<filename>.toon` (use `!` to skip auto-save)
+
+## Token Counter
+
+Display a floating window in the bottom-right corner showing the GPT token count of your TOON file. This is useful for staying within context limits when preparing data for LLMs.
+
+### Setup
+
+Install the tokenizer package:
+
+```bash
+npm install -g gpt-tokenizer
+```
+
+Enable the token counter in your config:
+
+```lua
+require('rainbow-toon').setup({
+  token_counter = {
+    enabled = true,  -- Auto-enable on TOON files
+  },
+})
+```
+
+Or enable it manually with `:RainbowToonTokens`.
+
+The counter updates automatically as you edit, with debouncing to avoid performance issues.
 
 ## Related
 

@@ -49,6 +49,24 @@ M.config = {
 
   -- Align tabular columns on save
   align_on_save = false,
+
+  -- Token counter configuration
+  token_counter = {
+    -- Enable token counter display (requires: npm install -g gpt-tokenizer)
+    enabled = false,
+    -- Debounce delay in ms before recounting tokens
+    debounce_ms = 500,
+    -- Window transparency (0=opaque, 100=fully transparent)
+    winblend = 30,
+    -- Border style: "none", "single", "double", "rounded", "solid", "shadow"
+    border = 'rounded',
+    -- Highlight group for the token count text
+    highlight = 'Comment',
+    -- Highlight group for the window border
+    border_highlight = 'FloatBorder',
+    -- Format string for display (%d = token count)
+    format = ' %d tokens ',
+  },
 }
 
 --- Track enabled state per buffer
@@ -91,6 +109,19 @@ function M.setup(opts)
       pattern = '*.toon',
       callback = function(args)
         M.align(args.buf)
+      end,
+    })
+  end
+
+  -- Set up token counter if configured
+  local token_counter = require('rainbow-toon.token-counter')
+  token_counter.setup(M.config.token_counter)
+
+  if M.config.token_counter.enabled then
+    vim.api.nvim_create_autocmd('FileType', {
+      pattern = 'toon',
+      callback = function(args)
+        token_counter.enable(args.buf)
       end,
     })
   end
@@ -146,6 +177,18 @@ function M._create_commands()
   vim.api.nvim_create_user_command('RainbowToonShrink', function()
     M.shrink()
   end, { desc = 'Remove extra whitespace from tabular arrays' })
+
+  vim.api.nvim_create_user_command('RainbowToonTokens', function()
+    M.tokens_enable()
+  end, { desc = 'Enable token counter display' })
+
+  vim.api.nvim_create_user_command('RainbowToonTokensOff', function()
+    M.tokens_disable()
+  end, { desc = 'Disable token counter display' })
+
+  vim.api.nvim_create_user_command('RainbowToonTokensToggle', function()
+    M.tokens_toggle()
+  end, { desc = 'Toggle token counter display' })
 
   -- Register JSON-specific command when opening JSON files
   vim.api.nvim_create_autocmd('FileType', {
@@ -280,6 +323,73 @@ function M.shrink(bufnr)
   if M.enabled_buffers[bufnr] then
     M._apply_rainbow(bufnr)
   end
+end
+
+--- Install the tree-sitter-toon parser from npm package
+--- Requires: npm install -g @danyiel-colin/tree-sitter-toon
+function M.install_parser()
+  -- Find the npm global package location
+  local handle = io.popen('npm root -g 2>/dev/null')
+  if not handle then
+    vim.notify('rainbow-toon: Could not find npm global root', vim.log.levels.ERROR)
+    return
+  end
+
+  local npm_root = handle:read('*l')
+  handle:close()
+
+  if not npm_root or npm_root == '' then
+    vim.notify('rainbow-toon: Could not find npm global root', vim.log.levels.ERROR)
+    return
+  end
+
+  local parser_path = npm_root .. '/@danyiel-colin/tree-sitter-toon'
+
+  -- Check if the package is installed
+  local stat = vim.loop.fs_stat(parser_path)
+  if not stat then
+    vim.notify(
+      'rainbow-toon: tree-sitter-toon not found. Run: npm install -g @danyiel-colin/tree-sitter-toon',
+      vim.log.levels.ERROR
+    )
+    return
+  end
+
+  -- Register the parser with nvim-treesitter using the npm package path
+  local parser_config = require('nvim-treesitter.parsers').get_parser_configs()
+
+  parser_config.toon = {
+    install_info = {
+      url = parser_path,
+      files = { 'src/parser.c', 'src/scanner.c' },
+      generate_requires_npm = false,
+      requires_generate_from_grammar = false,
+    },
+    filetype = 'toon',
+  }
+
+  vim.notify('rainbow-toon: Parser configured from ' .. parser_path, vim.log.levels.INFO)
+  vim.notify('rainbow-toon: Now run :TSInstall toon', vim.log.levels.INFO)
+end
+
+--- Enable token counter for current buffer
+---@param bufnr number|nil Buffer number (default: current buffer)
+function M.tokens_enable(bufnr)
+  local token_counter = require('rainbow-toon.token-counter')
+  token_counter.enable(bufnr)
+end
+
+--- Disable token counter
+function M.tokens_disable()
+  local token_counter = require('rainbow-toon.token-counter')
+  token_counter.disable()
+end
+
+--- Toggle token counter for current buffer
+---@param bufnr number|nil Buffer number (default: current buffer)
+function M.tokens_toggle(bufnr)
+  local token_counter = require('rainbow-toon.token-counter')
+  token_counter.toggle(bufnr)
 end
 
 return M
