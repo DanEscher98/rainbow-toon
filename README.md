@@ -244,6 +244,29 @@ require('lualine').setup({
 vim.o.statusline = '%f %m%=%{v:lua.require("rainbow-toon.token-counter").statusline()} %l:%c'
 ```
 
+**NvChad:**
+```lua
+-- In lua/chadrc.lua
+M.ui = {
+  statusline = {
+    theme = "default",
+    order = { "mode", "file", "git", "%=", "lsp_msg", "%=", "toon_tokens", "diagnostics", "lsp", "cwd", "cursor" },
+    modules = {
+      toon_tokens = function()
+        local ok, token_counter = pcall(require, "rainbow-toon.token-counter")
+        if ok then
+          local count = token_counter.statusline()
+          if count and count ~= "" then
+            return "%#St_LspHints#" .. " " .. count .. " "
+          end
+        end
+        return ""
+      end,
+    },
+  },
+}
+```
+
 The counter updates automatically as you edit, with debouncing to avoid performance issues.
 
 ## Related
