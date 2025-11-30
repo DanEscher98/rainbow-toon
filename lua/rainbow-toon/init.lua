@@ -143,10 +143,16 @@ function M._create_commands()
     M.align()
   end, { desc = 'Align tabular array columns in TOON file' })
 
-  vim.api.nvim_create_user_command('RainbowJson2Toon', function(opts)
-    local save = not opts.bang  -- :RainbowJson2Toon saves, :RainbowJson2Toon! doesn't
-    M.json_to_toon(save)
-  end, { bang = true, desc = 'Convert JSON buffer to TOON (! to skip auto-save)' })
+  -- Register JSON-specific command when opening JSON files
+  vim.api.nvim_create_autocmd('FileType', {
+    pattern = 'json',
+    callback = function(args)
+      vim.api.nvim_buf_create_user_command(args.buf, 'RainbowJson2Toon', function(opts)
+        local save = not opts.bang
+        M.json_to_toon(save)
+      end, { bang = true, desc = 'Convert JSON buffer to TOON (! to skip auto-save)' })
+    end,
+  })
 end
 
 --- Enable rainbow highlighting for a buffer

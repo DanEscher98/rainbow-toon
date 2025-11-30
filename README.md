@@ -7,6 +7,7 @@ Neovim plugin for [TOON (Token-Oriented Object Notation)](https://github.com/too
 - **Syntax highlighting** via [tree-sitter-toon](https://github.com/DanEscher98/tree-sitter-toon)
 - **Rainbow column highlighting** for tabular arrays (10-color cycling palette)
 - **Column alignment** with `:RainbowToonAlign`
+- **JSON to TOON conversion** with `:RainbowJson2Toon`
 - **Filetype detection** for `.toon` files
 - **Editor settings** optimized for TOON (2-space indentation)
 
@@ -26,7 +27,7 @@ Neovim plugin for [TOON (Token-Oriented Object Notation)](https://github.com/too
   config = function()
     require('rainbow-toon').setup()
   end,
-  ft = 'toon',
+  ft = { 'toon', 'json' },  -- Load on both TOON and JSON files
 }
 ```
 
@@ -39,7 +40,7 @@ use {
   config = function()
     require('rainbow-toon').setup()
   end,
-  ft = 'toon',
+  ft = { 'toon', 'json' },  -- Load on both TOON and JSON files
 }
 ```
 
@@ -64,12 +65,14 @@ Or manually from [tree-sitter-toon](https://github.com/DanEscher98/tree-sitter-t
 
 ## Commands
 
-| Command | Description |
-|---------|-------------|
-| `:RainbowToonEnable` | Enable rainbow column highlighting |
-| `:RainbowToonDisable` | Disable rainbow column highlighting |
-| `:RainbowToonToggle` | Toggle rainbow column highlighting |
-| `:RainbowToonAlign` | Align tabular array columns |
+| Command | Description | Filetype |
+|---------|-------------|----------|
+| `:RainbowToonEnable` | Enable rainbow column highlighting | toon |
+| `:RainbowToonDisable` | Disable rainbow column highlighting | toon |
+| `:RainbowToonToggle` | Toggle rainbow column highlighting | toon |
+| `:RainbowToonAlign` | Align tabular array columns | toon |
+| `:RainbowJson2Toon` | Convert JSON to TOON (auto-saves) | json |
+| `:RainbowJson2Toon!` | Convert JSON to TOON (no auto-save) | json |
 
 ## Configuration
 
@@ -80,6 +83,9 @@ require('rainbow-toon').setup({
 
   -- Auto-enable on TOON files (default: true)
   auto_enable = true,
+
+  -- Align tabular columns on save (default: false)
+  align_on_save = false,
 
   -- Color palette for rainbow columns
   colors = {
@@ -134,6 +140,33 @@ users[3]{id,name,role,active}:
   2, Bob,     developer, true
   3, Charlie, designer, false
 ```
+
+## JSON to TOON Conversion
+
+Open a JSON file and run `:RainbowJson2Toon` to convert it to TOON format:
+
+**Input (users.json):**
+```json
+{
+  "users": [
+    {"id": 1, "name": "Alice", "role": "admin", "active": true},
+    {"id": 2, "name": "Bob", "role": "developer", "active": true}
+  ]
+}
+```
+
+**Output (users.toon):**
+```toon
+users[2]{active,id,name,role}:
+  true, 1, Alice, admin
+  true, 2, Bob, developer
+```
+
+The converter automatically:
+- Detects tabular arrays (objects with same keys) and uses compact `[N]{fields}:` format
+- Chooses appropriate delimiters (comma, pipe, or tab) based on content
+- Opens the result in a vertical split
+- Saves to `<filename>.toon` (use `!` to skip auto-save)
 
 ## Related
 
